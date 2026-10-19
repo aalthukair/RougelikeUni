@@ -1,0 +1,46 @@
+using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.Tilemaps;
+
+public class WallObject : CellObject
+{
+    [SerializeField, FormerlySerializedAs("ObstacleTile")]
+    [Tooltip("Tile drawn on the board while this wall is standing.")]
+    private Tile m_ObstacleTile;
+
+    [SerializeField, FormerlySerializedAs("MaxHealth")]
+    [Range(1, 10), Tooltip("Number of hits the player needs to break this wall.")]
+    private int m_MaxHealth = 3;
+
+    private int m_HealthPoint;
+    private Tile m_OriginalTile;
+
+    public override bool IsAttackable => true;
+
+    public override void Init(Vector2Int cell)
+    {
+        base.Init(cell);
+
+        m_HealthPoint = m_MaxHealth;
+
+        m_OriginalTile = GameManager.Instance.BoardManager.GetCellTile(cell);
+        GameManager.Instance.BoardManager.SetCellTile(cell, m_ObstacleTile);
+    }
+
+    public override bool PlayerWantsToEnter()
+    {
+        GameManager gameManager = GameManager.Instance;
+        m_HealthPoint -= 1;
+        gameManager.SoundManager.PlayWallAttack();
+
+        if (m_HealthPoint > 0)
+        {
+            return false;
+        }
+
+        gameManager.BoardManager.SetCellTile(m_Cell, m_OriginalTile);
+        gameManager.EffectsManager.PlayWallDestroyed(transform.position);
+        gameManager.BoardManager.RemoveObject(this);
+        return true;
+    }
+}
